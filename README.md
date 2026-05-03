@@ -385,9 +385,9 @@ Estructura mínima sugerida:
 
 | Escenario | Modelo | Duración | SLO | Resultado | Artefactos |
 |---|---|---|---|---|---|
-| Baseline | 50 VUs, p95<300ms | 15 min | p95<300ms | Cumple / No | `results/baseline-report/` |
-| Carga | 0→200 VUs 20 min | p95<500ms | Cumple / No | `results/load-report/` |
-| Estrés | 200→600 VUs | Error<1% | Cumple / No | `results/stress-report/` |
+| Baseline | 20 VUs, closed | 5 min | p95<300ms, error<1% |  Cumple (p95=3.1ms, error=0%) | `perf/results/summary-baseline.json` |
+| Carga | 0→200 VUs, rampa 2min | 14 min | p95<300ms, error<1% |  Cumple (p95=33.2ms, error=0.026%) | `perf/results/summary-load.json` |
+| Estrés | 0→600 VUs, rampa 2min | 10 min | p95<300ms, error<1% |  Cumple (p95=40.8ms, error=0.10%) | `perf/results/summary-stress.json` |
 
 ### 6) Gestión de defectos
 
