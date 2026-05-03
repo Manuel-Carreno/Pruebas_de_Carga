@@ -19,103 +19,66 @@ y propuesta de mejora.
 
 # Formato 1: Lista detallada
 
-## Defecto PERF-01 --- Incumplimiento de SLO de latencia bajo Load
+## Defecto PERF-01 --- Campo de **id** no soporta las cedulas de 10 digitos
 
--   Capa afectada: Aplicación / Base de datos\
--   Escenario: Load Test (200 VUs)\
--   SLO definido: p95 \< 300 ms\
--   Resultado esperado: Cumplimiento del SLO bajo carga nominal.\
--   Resultado obtenido: p95 = 612 ms
+-   Escenario: Baseline/Load/Stress (register_voter_k6.js) \
+-   Resultado esperado: Registro exitoso con un un documento real \
+-   Resultado obtenido: Numeric value out of range of int \
+-   Causa: Los documentos estan definidos como int pero las cedulas al ser de 10 digitos superan el rango establecido para un dato tipo int \
+-   Impacto: Los requests fallan
+-   Prioridad: Alta
 
 ### Evidencia
-
-http_req_duration: avg=402ms\
-p(95)=612ms\
-p(99)=890ms
-
-### Impacto
-
-Incumplimiento del objetivo de nivel de servicio bajo carga esperada.
-
-### Causa probable
-
--   Saturación del pool de conexiones.\
--   Consulta sin índice.
+``` java 
+ Numeric value (5131999541) out of range of int (-2147483648 - 2147483647)
+```
+Esta fue la salida que se mostro en la terminal de spring al tratar de correr la prueba
 
 ### Estado
-
 Abierto
-
-### Prioridad
-
-Alta
 
 ------------------------------------------------------------------------
 
-## Defecto PERF-02 --- Error rate elevado bajo Stress
+## Defecto PERF-02 --- Registro concurrente causa HTTP 500
 
 -   Capa afectada: Servidor de aplicación\
--   Escenario: Stress Test (600 VUs)\
+-   Escenario: Load/Stress (200 - 600 VUs)\
 -   SLO definido: Error rate \< 1%\
--   Resultado obtenido: 3.8%
+-   Resultado esperado: Responda con DUPLICATED para id repetidos
+-   Resultado obtenido: **JdbcSQLIntegrityConstraintViolationException**,dos VUs pasan el existsById simultáneamente e intentan insertar el mismo id
+-   Causa: No hay manejo de transacciones para registerVoter
+-   Prioridad: Alta
 
 ### Evidencia
-
-http_req_failed: 3.8%\
-status=500 detectado
-
-### Impacto
-
-Fallas del sistema bajo carga alta.
-
-### Causa probable
-
--   Agotamiento de threads.\
--   Configuración insuficiente.
+``` java 
+JdbcSQLIntegrityConstraintViolationException: Unique index or primary key violation
+```
 
 ### Estado
+Abierto
 
-En progreso
-
-### Prioridad
-
-Crítica
 
 ------------------------------------------------------------------------
 
-## Defecto PERF-03 --- Degradación progresiva en Soak Test
+## Defecto PERF-03 --- body VALID falla al 100% en cualquier prueba
 
--   Capa afectada: JVM / Memoria\
--   Escenario: Soak Test (2 horas)\
--   Resultado esperado: Latencia estable\
--   Resultado obtenido: Incremento progresivo de 210ms a 480ms
-
-### Impacto
-
-Posible fuga de memoria o acumulación de recursos.
+-   Escenario: Baseline/Load/Stress 
+-   Resultado esperado: register_failed rate < 1%
+-   Resultado obtenido: register_failed = 100%
+-   Causa: La app responde con DUPLICATED en lugar de VALID por que la base de datos almacenada en memoria persiste entre ejecuciones y los id se van acabando.
+-   Prioridad: Media
 
 ### Estado
-
 Abierto
-
-### Prioridad
-
-Media
 
 ------------------------------------------------------------------------
 
 # Formato 2: Tabla de seguimiento
-
-  ----------------------------------------------------------------------------------
-  ID        Escenario   Resultado Esperado Resultado Obtenido Estado     Prioridad
-  --------- ----------- ------------------ ------------------ ---------- -----------
-  PERF-01   Load        p95 \< 300ms       612ms              Abierto    Alta
-
-  PERF-02   Stress      Error \< 1%        3.8%               En         Crítica
-                                                              progreso   
-
-  PERF-03   Soak        Latencia estable   Degradación        Abierto    Media
-  ----------------------------------------------------------------------------------
+| ID      | Escenario           | Resultado Esperado                         | Resultado Obtenido                                      | Estado  | Prioridad |
+|---------|--------------------|--------------------------------------------|---------------------------------------------------------|--------|-----------|
+| PERF-01 | Baseline / Load / Stress | Registros exitosos con documentId real     | HTTP 400  — int out of range                      | Abierto | Alta      |
+| PERF-02 | Load / Stress      | Respuesta DUPLICATED para IDs repetidos    | HTTP 500 — condición de carrera en inserción concurrente | Abierto | Alta   |
+| PERF-03 | Baseline / Load / Stress | register_failed rate < 1%                  | register_failed = 100% — BD  persiste entre ejecuciones | Abierto | Media     |
 
 ------------------------------------------------------------------------
 

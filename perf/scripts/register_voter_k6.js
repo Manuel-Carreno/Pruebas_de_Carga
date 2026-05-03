@@ -115,10 +115,3 @@ export default function () {
     registerFailed.add(0);
   }
 }
-
-export function handleSummary(data) {
-  const scen = SCENARIO || 'baseline';
-  return {
-    [`perf/results/summary-voter-${scen}.json`]: JSON.stringify(data, null, 2),
-  };
-}
