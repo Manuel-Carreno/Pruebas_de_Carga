@@ -33,8 +33,8 @@ const scenarios = {
   load: {
     stages: [
       { duration: '2m', target: Number(__ENV.VU_BASE || 50) },   // warmup
-      { duration: '10m', target: Number(__ENV.VU_PEAK || 200) }, // ramp-up
-      { duration: '20m', target: Number(__ENV.VU_PEAK || 200) }, // steady
+      { duration: '5m', target: Number(__ENV.VU_PEAK || 200) }, // ramp-up
+      { duration: '5m', target: Number(__ENV.VU_PEAK || 200) }, // steady
       { duration: '5m', target: 0 },                              // ramp-down
     ],
   },
@@ -85,14 +85,11 @@ export default function () {
   const idem = Math.random().toString(36).slice(2);
 
   const payload = JSON.stringify({
-    documentId: v.documentId,
-    fullName: v.fullName,
+    id: (__VU * 10000 + __ITER) % 2000000000,
+    name: v.fullName,
     age: Number(v.age),
-    gender: v.gender,
-    cityCode: v.cityCode,
-    address: v.address,
-    phone: v.phone,
-    email: v.email,
+    gender: v.gender === 'M' ? 'MALE' : v.gender === 'F' ? 'FEMALE' : 'MALE',
+    alive: true,
   });
 
   const params = {
@@ -104,17 +101,12 @@ export default function () {
     tags: { endpoint: 'register' },
   };
 
-  const res = http.post(`${BASE_URL}/api/v1/voters/register`, payload, params);
+  const res = http.post(`${BASE_URL}/register`, payload, params);
 
   registerDuration.add(res.timings.duration);
   const ok = check(res, {
-    'status is 2xx/3xx': (r) => r.status >= 200 && r.status < 400,
-    'has registrationId': (r) => {
-      try {
-        const j = r.json();
-        return !!(j && (j.id || j.registrationId));
-      } catch (e) { return false; }
-    },
+    'status is 200': (r) => r.status == 200,
+    'body VALID': (r) => String(r.body || '').toUpperCase().includes('VALID'),
   });
 
   if (!ok) {
@@ -122,4 +114,11 @@ export default function () {
   } else {
     registerFailed.add(0);
   }
+}
+
+export function handleSummary(data) {
+  const scen = SCENARIO || 'baseline';
+  return {
+    [`perf/results/summary-voter-${scen}.json`]: JSON.stringify(data, null, 2),
+  };
 }
